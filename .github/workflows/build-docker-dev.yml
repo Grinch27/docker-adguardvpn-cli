@@ -263,7 +263,7 @@ jobs:
           LOG_CHANGELOG: ${{ github.workspace }}/log/changelog.log
         run: |
           # add all changes in ./log to the staging area
-          git add --all ./kog
+          git add --all ./log
 
           # check for changes
           if git diff --cached --quiet; then
@@ -341,4 +341,3 @@ jobs:
           replacesArtifacts: true
           body: ""
           # bodyFile: "${{ env.release_md }}"
-          
