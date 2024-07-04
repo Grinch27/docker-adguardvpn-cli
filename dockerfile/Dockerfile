@@ -64,6 +64,7 @@ RUN apt-get update --ignore-missing \
     && apt-get purge --autoremove -y \
         # curl \
         lsb-release \
+        expect \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/log/*.log
