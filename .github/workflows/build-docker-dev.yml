@@ -65,7 +65,7 @@ jobs:
       tag: ${{ inputs.tag || 'dev' }}
       # version: ${{ inputs.version }}
       app: adguardvpn-cli
-      BASE_IMAGE: debian:slim
+      BASE_IMAGE: debian:stable-slim
       update_channel: ${{ inputs.update_channel || 'release' }}
     steps:
       - name: Checkout ${{ github.repository }}
