@@ -49,7 +49,7 @@ RUN apt-get update --ignore-missing \
     && rm ${pkg_name} \
     # ENTRYPOINT startapp.sh
     && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
-    && chmod +x /startapp.sh
+    && chmod +x /startapp.sh \
     # ===== Cleanup =====
     # ----- Clean pre-install -----
     && apt-get purge --autoremove -y \
