@@ -33,9 +33,9 @@ RUN apt-get update --ignore-missing \
     && sed -i 's/read -r response < \/dev\/tty/response="y"/g' ${FILE_SH} \
     && sh -v ${FILE_SH} \
     # ----- check adguardvpn-cli -----
-    && echo $PATH \
-    && ls -lh /usr/local/bin/ \
-    && ls -lh /opt/adguardvpn_cli/adguardvpn-cli \
+    # && echo $PATH \
+    # && ls -lh /usr/local/bin/ \
+    # && ls -lh /opt/adguardvpn_cli/adguardvpn-cli \
     # && yes "y" | bash ${FILE_SH} \
     # && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
     # && echo "version=${version}" \
