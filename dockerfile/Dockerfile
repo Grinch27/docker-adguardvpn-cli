@@ -7,13 +7,14 @@ ARG update_channel=release
 ENV update_channel=${update_channel}
 
 RUN export DEBIAN_FRONTEND=noninteractive \
+    # ----- Base -----
     && apt-get update --ignore-missing \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         gpg \
         curl \
         # lsb-release \
-        systemd \
+        systemd
         # man \
         # expect \
         # iproute2 \
@@ -27,16 +28,16 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     # && OS_ARCH=$(dpkg --print-architecture) \
     # && OS_VER=$(lsb_release -cs) \
     # ----- Install adguardvpn-cli -----
-    && yes | curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh | sh -s -- -v \
+RUN yes | curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh | sh -s -- -v
+    # # ENTRYPOINT startapp.sh
+    # && echo "#!/bin/sh\n\n" > /startapp.sh \
+    # && chmod +x /startapp.sh
+    # ----- Cleanup -----
     # # Clean pre-install
     # && apt-get purge --autoremove -y \
     #     # curl \
     #     lsb-release \
-    # # ENTRYPOINT startapp.sh
-    # && echo "#!/bin/sh\n\n" > /startapp.sh \
-    # && chmod +x /startapp.sh
-    # Clean apt
-    && apt-get clean \
+RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/log/*.log \
     && unset DEBIAN_FRONTEND
