@@ -265,27 +265,29 @@ jobs:
           # add all changes in ./log to the staging area
           git add --all ./log
 
-          # check for changes
-          if git diff --cached --quiet; then
-            echo "No changes to commit" >> ${GITHUB_OUTPUT}
-          else
-            # commit changes
-            if git commit -m "Log dpkg list"; then
-              echo "commit=success" >> ${GITHUB_OUTPUT}
-              echo "changed=true" >> ${GITHUB_OUTPUT}
-              git diff --cached >> ${{ env.LOG_CHANGELOG }}
+          # # check for changes
+          # if git diff --cached --quiet; then
+          #   echo "No changes to commit" >> ${GITHUB_OUTPUT}
+          # else
+          #   # commit changes
+          #   if git commit -m "Log dpkg list"; then
+          #     echo "commit=success" >> ${GITHUB_OUTPUT}
+          #     echo "changed=true" >> ${GITHUB_OUTPUT}
+          #     git diff --cached >> ${{ env.LOG_CHANGELOG }}
 
-              # push changes
-              if git push origin ${{ github.ref }}; then
-                echo "push=success" >> ${GITHUB_OUTPUT}
-                echo "status=success" >> ${GITHUB_OUTPUT}
-              else
-                echo "status=failed" >> ${GITHUB_OUTPUT}
-              fi
-            else
-              echo "commit=failed" >> ${GITHUB_OUTPUT}
-            fi
-          fi
+          #     # push changes
+          #     if git push origin ${{ github.ref }}; then
+          #       echo "push=success" >> ${GITHUB_OUTPUT}
+          #       echo "status=success" >> ${GITHUB_OUTPUT}
+          #     else
+          #       echo "status=failed" >> ${GITHUB_OUTPUT}
+          #     fi
+          #   else
+          #     echo "commit=failed" >> ${GITHUB_OUTPUT}
+          #   fi
+          # fi
+
+          echo "changed=true" >> ${GITHUB_OUTPUT}
 
       - name: Log in to Docker Hub
         if: steps.changes.outputs.changed == 'true'
