@@ -12,7 +12,7 @@ RUN apt-get update --ignore-missing \
         gpg \
         curl \
         systemd \
-        lsb-release \
+        # lsb-release \
         # man \
         # expect \
         # iproute2 \
@@ -22,9 +22,9 @@ RUN apt-get update --ignore-missing \
         # vim \
         # sudo \
         # procps \
-    # Set OS_ARCH, OS_VER
-    && export OS_ARCH=$(dpkg --print-architecture) \
-    && export OS_VER=$(lsb_release -cs) \
+    # # Set OS_ARCH, OS_VER
+    # && export OS_ARCH=$(dpkg --print-architecture) \
+    # && export OS_VER=$(lsb_release -cs) \
     # ===== adguardvpn-cli =====
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="/install.sh" \
@@ -57,9 +57,9 @@ RUN apt-get update --ignore-missing \
     # && rm ${pkg_name} \
     # ===== Cleanup =====
     # ----- Clean pre-install -----
-    && apt-get purge --autoremove -y \
+    # && apt-get purge --autoremove -y \
         # curl \
-        lsb-release \
+        # lsb-release \
         # expect \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
@@ -68,3 +68,5 @@ RUN apt-get update --ignore-missing \
     # && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
     # && chmod +x /startapp.sh \
     # ENTRYPOINT ["/startapp.sh"]
+
+ENTRYPOINT ["/bin/bash", "-c", "uname -a && sleep infinity"]
