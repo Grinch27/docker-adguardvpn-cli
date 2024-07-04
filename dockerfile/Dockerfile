@@ -14,7 +14,7 @@ RUN apt-get update --ignore-missing \
         systemd \
         lsb-release \
         # man \
-        # expect \
+        expect \
         # iproute2 \
         # jq \
         # nftables \
@@ -29,7 +29,12 @@ RUN apt-get update --ignore-missing \
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
-    && yes "y" | bash ${FILE_SH} \
+    && expect -c "\
+    spawn ${FILE_SH}; \
+    expect \"Would you like to link the binary to /usr/local/bin? [y/N]\" { send \"y\\r\" }; \
+    expect eof\
+    " \
+    # && yes "y" | bash ${FILE_SH} \
     # && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
     # && echo "version=${version}" \
     # # Determine CPU architecture for cpu variable
