@@ -133,6 +133,7 @@ jobs:
         env:
           image: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
           container_name: container-test
+          DIR_OUTPUT: "${{ github.workspace }}/output"
         run: |
           # Inspect Docker image
           docker buildx imagetools inspect localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
@@ -171,13 +172,12 @@ jobs:
             version_info=$(docker exec ${{ env.container_name }} apt policy ${{ env.app }} 2>/dev/null)
             # Check if version information was successfully retrieved
             if echo "$version_info" | grep -q 'Installed:'; then
-                # If successful, extract and store the version information
                 version=$(echo "$version_info" | grep 'Installed:' | awk '{print $2}')
                 versions[$version]=1
             else
                 # If the apt policy method fails, try to get version information using adguardvpn-cli --version
                 docker exec ${{ env.container_name }} adguardvpn-cli --version
-                version=$(docker exec ${{ env.container_name }} adguardvpn-cli --version | awk '{print $NF}')
+                version=$(docker exec ${{ env.container_name }} adguardvpn-cli --version | awk '{print $4}' | cut -d 'v' -f 2)
                 if [ -n "$version" ]; then
                     versions[$version]=1
                 else
@@ -192,6 +192,7 @@ jobs:
             docker stop ${{ env.container_name }}
 
             # Save Docker image
+            mkdir -p ${{ env.DIR_OUTPUT }}
             docker save localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} | gzip > ${{ github.workspace }}/${filename}_${version}.tar.gz
           done
 
@@ -215,7 +216,7 @@ jobs:
       - name: Run Python script
         working-directory: ${{ github.workspace }}
         env:
-          LOG_DIR: "./log"
+          DIR_LOG: "${{ github.workspace }}/log"
         run: |
           python -m pip install --upgrade pip
           # pip install -r requirements.txt
@@ -224,9 +225,9 @@ jobs:
           sudo apt-get install -y jq
 
           # Process each .log file
-          for file in "$LOG_DIR"/*.log; do
+          for file in "${{ env.DIR_LOG }}"/*.log; do
             # Define a variable for the output file name
-            output_file="packages_${file##*/}.json"
+            output_file="${{ env.DIR_LOG }}/packages_${file##*/}.json"
 
             # dpkg2json
             python python/dpkg2json.py --input "$file" --output "$output_file"
@@ -262,7 +263,7 @@ jobs:
           LOG_CHANGELOG: ${{ github.workspace }}/log/changelog.log
         run: |
           # add all changes in ./log to the staging area
-          git add --all .
+          git add --all ./kog
 
           # check for changes
           if git diff --cached --quiet; then
@@ -325,7 +326,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
           name: "${{ env.app }}"
           tag: "${{ env.app }}"
-          artifacts: "${{ github.workspace }}/${{ env.app }}_*.tar.gz"
+          artifacts: "${{ github.workspace }}/output/${{ env.app }}_*.tar.gz"
           allowUpdates: true
           removeArtifacts: false
           replacesArtifacts: true
