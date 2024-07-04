@@ -9,7 +9,7 @@ on:
       path_dockerfile:
         description: "dockerfile path in repo"
         required: true
-        default: "Dockerfile"
+        default: "dockerfile/Dockerfile"
         type: string
       arch_branch:
         description: "Input arch"
