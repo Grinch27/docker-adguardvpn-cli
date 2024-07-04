@@ -14,7 +14,7 @@ RUN apt-get update --ignore-missing \
         systemd \
         lsb-release \
         # man \
-        expect \
+        # expect \
         # iproute2 \
         # jq \
         # nftables \
@@ -30,17 +30,8 @@ RUN apt-get update --ignore-missing \
     && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
     && chmod +x ${FILE_SH} \
-    && expect -c "\
-        set timeout -1; \
-        spawn ${FILE_SH}; \
-        expect { \
-            -re \".*\\[y/N\\].*\" { \
-                send \"y\\r\"; \
-                exp_continue; \
-            } \
-            eof \
-        } \
-    " \
+    && sed -i 's/read -r response < \/dev\/tty/response="y"/g' ${FILE_SH} \
+    && sh -v ${FILE_SH} \
     # && yes "y" | bash ${FILE_SH} \
     # && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
     # && echo "version=${version}" \
@@ -65,7 +56,7 @@ RUN apt-get update --ignore-missing \
     && apt-get purge --autoremove -y \
         # curl \
         lsb-release \
-        expect \
+        # expect \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/log/*.log
