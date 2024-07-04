@@ -65,7 +65,7 @@ jobs:
       tag: ${{ inputs.tag || 'dev' }}
       # version: ${{ inputs.version }}
       app: adguardvpn-cli
-      BASE_IMAGE: debian:stable-slim
+      BASE_IMAGE: debian:slim
       update_channel: ${{ inputs.update_channel || 'release' }}
     steps:
       - name: Checkout ${{ github.repository }}
@@ -123,6 +123,7 @@ jobs:
           tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
           build-args: |
             BASE_IMAGE=${{ env.BASE_IMAGE }}
+            update_channel=${{ env.update_channel }}
 
       - name: Test Docker image & Check version consistency
         id: test
