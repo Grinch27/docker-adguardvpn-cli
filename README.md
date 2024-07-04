@@ -1,2 +1,2 @@
-# docker-AdGuardVPNCLI
-AdGuardVPNCLI Container for learning
+# docker-adguardvpn-cli
+adguardvpn-cli Container for learning
