@@ -166,12 +166,24 @@ jobs:
 
             # List all installed packages, print the output and save it to a log file
             docker exec ${{ env.container_name }} dpkg --list | tee ${{ github.workspace }}/log/${filename}.log
-
-            # Execute command in Docker container to get version information
-            version=$(docker exec ${{ env.container_name }} apt policy ${{ env.app }} | grep 'Installed:' | awk '{print $2}')
-
-            # Store version information in the associative array
-            versions[$version]=1
+            
+            # Attempt to get version information using apt policy
+            version_info=$(docker exec ${{ env.container_name }} apt policy ${{ env.app }} 2>/dev/null)
+            # Check if version information was successfully retrieved
+            if echo "$version_info" | grep -q 'Installed:'; then
+                # If successful, extract and store the version information
+                version=$(echo "$version_info" | grep 'Installed:' | awk '{print $2}')
+                versions[$version]=1
+            else
+                # If the apt policy method fails, try to get version information using adguardvpn-cli --version
+                adguardvpn-cli --version
+                version=$(docker exec ${{ env.container_name }} adguardvpn-cli --version | awk '{print $NF}')
+                if [ -n "$version" ]; then
+                    versions[$version]=1
+                else
+                    echo "Unable to get version information for ${env.app}."
+                fi
+            fi
 
             # Test DNS settings
             docker exec ${{ env.container_name }} cat /etc/resolv.conf
