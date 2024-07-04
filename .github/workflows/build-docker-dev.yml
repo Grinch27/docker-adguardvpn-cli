@@ -176,7 +176,7 @@ jobs:
                 versions[$version]=1
             else
                 # If the apt policy method fails, try to get version information using adguardvpn-cli --version
-                adguardvpn-cli --version
+                docker exec ${{ env.container_name }} adguardvpn-cli --version
                 version=$(docker exec ${{ env.container_name }} adguardvpn-cli --version | awk '{print $NF}')
                 if [ -n "$version" ]; then
                     versions[$version]=1
