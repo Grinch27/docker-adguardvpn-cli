@@ -12,7 +12,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         ca-certificates \
         gpg \
         curl \
-        lsb-release \
+        # lsb-release \
         systemd \
         # man \
         # expect \
@@ -23,15 +23,15 @@ RUN export DEBIAN_FRONTEND=noninteractive \
         # vim \
         # sudo \
         # procps \
-    # Set OS_ARCH, OS_VER
-    && OS_ARCH=$(dpkg --print-architecture) \
-    && OS_VER=$(lsb_release -cs) \
+    # # Set OS_ARCH, OS_VER
+    # && OS_ARCH=$(dpkg --print-architecture) \
+    # && OS_VER=$(lsb_release -cs) \
     # Install adguardvpn-cli
     && curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh | sh -s -- -v \
-    # Clean pre-install
-    && apt-get purge --autoremove -y \
-        # curl \
-        lsb-release \
+    # # Clean pre-install
+    # && apt-get purge --autoremove -y \
+    #     # curl \
+    #     lsb-release \
     # Clean apt
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
