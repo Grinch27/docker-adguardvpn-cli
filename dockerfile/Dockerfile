@@ -30,7 +30,7 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     && curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh | sh -s -- -v \
     # Clean pre-install
     && apt-get purge --autoremove -y \
-        curl \
+        # curl \
         lsb-release \
     # Clean apt
     && apt-get clean \
