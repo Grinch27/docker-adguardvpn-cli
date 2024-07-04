@@ -1,5 +1,5 @@
 # FROM ubuntu:jammy
-ARG BASE_IMAGE=debian:slim
+ARG BASE_IMAGE=debian:stable-slim
 FROM ${BASE_IMAGE}
 
 # update_channel
