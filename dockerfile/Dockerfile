@@ -59,9 +59,6 @@ RUN apt-get update --ignore-missing \
     # && curl -fsSL ${URL_PKG} -o ${pkg_name} \
     # && dpkg -i ${pkg_name} \
     # && rm ${pkg_name} \
-    # ----- ENTRYPOINT startapp.sh -----
-    && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
-    && chmod +x /startapp.sh \
     # ===== Cleanup =====
     # ----- Clean pre-install -----
     && apt-get purge --autoremove -y \
@@ -70,5 +67,7 @@ RUN apt-get update --ignore-missing \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/log/*.log
-
-ENTRYPOINT ["/startapp.sh"]
+    # ===== ENTRYPOINT startapp.sh =====
+    # && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
+    # && chmod +x /startapp.sh \
+    # ENTRYPOINT ["/startapp.sh"]
