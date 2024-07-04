@@ -6,9 +6,7 @@ FROM ${BASE_IMAGE}
 ARG update_channel=release
 ENV update_channel=${update_channel}
 
-RUN export DEBIAN_FRONTEND=noninteractive \
-    # ----- Base -----
-    && apt-get update --ignore-missing \
+RUN apt-get update --ignore-missing \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         gpg \
@@ -39,6 +37,5 @@ RUN yes | curl -fsSL https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI
     #     lsb-release \
 RUN apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
-    && rm -rf /var/log/*.log \
-    && unset DEBIAN_FRONTEND
+    && rm -rf /var/log/*.log
     # ENTRYPOINT ["/startapp.sh"]
