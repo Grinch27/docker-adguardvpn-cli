@@ -32,13 +32,12 @@ RUN export DEBIAN_FRONTEND=noninteractive \
     # && apt-get purge --autoremove -y \
     #     # curl \
     #     lsb-release \
+    # # ENTRYPOINT startapp.sh
+    # && echo "#!/bin/sh\n\n" > /startapp.sh \
+    # && chmod +x /startapp.sh
     # Clean apt
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/log/*.log \
-    && unset DEBIAN_FRONTEND \
-    # ENTRYPOINT startapp.sh
-#     && echo "#!/bin/sh\n\n" > /startapp.sh \
-#     && chmod +x /startapp.sh
-    
-# ENTRYPOINT ["/startapp.sh"]
+    && unset DEBIAN_FRONTEND
+    # ENTRYPOINT ["/startapp.sh"]
