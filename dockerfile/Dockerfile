@@ -29,8 +29,8 @@ RUN apt-get update --ignore-missing \
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
-    && VERSION=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
-    && echo "VERSION=${VERSION}" \
+    && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
+    && echo "version=${version}" \
     # Determine CPU architecture for cpu variable
     && export cpu=$(case $(dpkg --print-architecture) in \
         amd64) echo "x86_64" ;; \
@@ -40,16 +40,16 @@ RUN apt-get update --ignore-missing \
     && export exe_name='adguardvpn-cli' \
     && export os='linux' \
     && export pkg_ext='tar.gz' \
-    && export pkg_name="${exe_name}-${os}-${cpu}.${pkg_ext}" \
+    && export pkg_name="${exe_name}-${version}-${os}-${cpu}.${pkg_ext}" \
     && echo "pkg_name=${pkg_name}" \
-    && export URL_PKG="https://github.com/AdguardTeam/AdGuardVPNCLI/releases/download/v${VERSION}-${update_channel}/${pkg_name}" \
+    && export URL_PKG="https://github.com/AdguardTeam/AdGuardVPNCLI/releases/download/v${version}-${update_channel}/${pkg_name}" \
     # Install adguardvpn-cli package
     && curl -fsSL ${URL_PKG} -o ${pkg_name} \
     && dpkg -i ${pkg_name} \
     && rm ${pkg_name} \
-    # # ENTRYPOINT startapp.sh
-    # && echo "#!/bin/sh\n\n" > /startapp.sh \
-    # && chmod +x /startapp.sh
+    # ENTRYPOINT startapp.sh
+    && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
+    && chmod +x /startapp.sh
     # ===== Cleanup =====
     # ----- Clean pre-install -----
     && apt-get purge --autoremove -y \
@@ -58,4 +58,5 @@ RUN apt-get update --ignore-missing \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* \
     && rm -rf /var/log/*.log
-    # ENTRYPOINT ["/startapp.sh"]
+
+ENTRYPOINT ["/startapp.sh"]
