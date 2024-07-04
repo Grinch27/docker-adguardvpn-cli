@@ -1,0 +1,316 @@
+name: Build Docker (Dev)
+
+on:
+  # schedule:
+  #   - cron: "0 0 * * *"
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      path_dockerfile:
+        description: "dockerfile path in repo"
+        required: true
+        default: "Dockerfile"
+        type: string
+      arch_branch:
+        description: "Input arch"
+        required: true
+        default: "linux/amd64,linux/arm64"
+        type: string
+      repo_dockerhub:
+        description: "Docker Hub repository"
+        required: true
+        default: "grinch27/adguardvpn-cli"
+        type: string
+      tag:
+        description: "tag"
+        required: true
+        default: "dev"
+        type: string
+      # version:
+      #   description: "version"
+      #   required: false
+      #   default: "dev"
+      #   type: string
+      # push-force:
+      #   description: 'Force to Push'
+      #   required: false
+      #   default: "false"
+      #   type: boolean
+      update_channel:
+        description: "Update Channel"
+        required: false
+        default: "dev"
+        type: choice
+        options:
+          - "release"
+          - "beta"
+          - "nightly"
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    services:
+      registry:
+        image: registry:latest
+        ports:
+          - 5000:5000
+    env:
+      path_dockerfile: ${{ inputs.path_dockerfile || 'dockerfile/Dockerfile' }}
+      arch_branch: ${{ inputs.arch_branch || 'linux/amd64,linux/arm64' }}
+      repo_dockerhub: ${{ inputs.repo_dockerhub || 'grinch27/adguardvpn-cli' }}
+      tag: ${{ inputs.tag || 'dev' }}
+      # version: ${{ inputs.version }}
+      app: adguardvpn-cli
+      BASE_IMAGE: debian:stable-slim
+      update_channel: ${{ inputs.update_channel || 'release' }}
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@main
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@master
+        with:
+          platforms: ${{ env.arch_branch }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@master
+        with:
+          driver-opts: network=host
+
+      - name: Test Base Image - ${{ env.BASE_IMAGE }}
+        id: base
+        env:
+          container_name: base-test
+        run: |
+          # Read platform information from environment variables
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+
+          for platform in "${platforms[@]}"; do
+            echo "========== Testing Base Image for platform: $platform =========="
+            docker pull --platform $platform ${{ env.BASE_IMAGE }}
+
+            docker run \
+              --name ${{ env.container_name }} \
+              --rm \
+              --detach \
+              --platform $platform \
+              ${{ env.BASE_IMAGE }} \
+              /bin/bash -c "uname -a && sleep infinity"
+
+            # List all installed packages
+            docker exec ${{ env.container_name }} dpkg --list
+
+            # Stop Docker container
+            docker stop ${{ env.container_name }}
+          done
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Build and push to local registry
+        id: build
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          file: ${{ github.workspace }}/${{ env.path_dockerfile }}
+          no-cache: false
+          platforms: ${{ env.arch_branch }}
+          load: false
+          push: true
+          tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+          build-args: |
+            BASE_IMAGE=${{ env.BASE_IMAGE }}
+
+      - name: Test Docker image & Check version consistency
+        id: test
+        env:
+          image: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+          container_name: container-test
+        run: |
+          # Inspect Docker image
+          docker buildx imagetools inspect localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+
+          # Read platform information from environment variables
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+
+          # Initialize an associative array to store version information
+          declare -A versions
+
+          # Test Docker container for each platform
+          for platform in "${platforms[@]}"; do
+            echo "========== Testing Docker container for platform: $platform =========="
+            filename=${{ env.app }}_$(echo $platform | sed 's/\//_/g')
+
+            # Pull Docker image
+            docker pull --platform $platform localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+
+            # Run Docker container
+            docker run \
+              --name ${{ env.container_name }} \
+              --rm \
+              --detach \
+              --platform $platform \
+              ${{ env.image }} \
+              /bin/bash -c "uname -a && sleep infinity"
+
+            # Ensure the log directory exists
+            mkdir -p ${{ github.workspace }}/log
+
+            # List all installed packages, print the output and save it to a log file
+            docker exec ${{ env.container_name }} dpkg --list | tee ${{ github.workspace }}/log/${filename}.log
+
+            # Execute command in Docker container to get version information
+            version=$(docker exec ${{ env.container_name }} apt policy ${{ env.app }} | grep 'Installed:' | awk '{print $2}')
+
+            # Store version information in the associative array
+            versions[$version]=1
+
+            # Test DNS settings
+            docker exec ${{ env.container_name }} cat /etc/resolv.conf
+
+            # Stop Docker container
+            docker stop ${{ env.container_name }}
+
+            # Save Docker image
+            docker save localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} | gzip > ${{ github.workspace }}/${filename}_${version}.tar.gz
+          done
+
+          # Get all unique version information
+          unique_versions=$(IFS=','; echo "${!versions[*]}")
+          echo "version=$unique_versions" | tee -a ${GITHUB_OUTPUT}
+
+          # Check version consistency
+          IFS=',' read -ra version_array <<< "$unique_versions"
+          if [ "${#version_array[@]}" -eq 1 ]; then
+            echo "status=success" >> ${GITHUB_OUTPUT}
+          else
+            echo "status=failure" >> ${GITHUB_OUTPUT}
+          fi
+
+      - name: Set up Python
+        uses: actions/setup-python@main
+        with:
+          python-version: "3.x"
+
+      - name: Run Python script
+        working-directory: ${{ github.workspace }}
+        env:
+          LOG_DIR: "./log"
+        run: |
+          python -m pip install --upgrade pip
+          # pip install -r requirements.txt
+
+          # Install jq
+          sudo apt-get install -y jq
+
+          # Process each .log file
+          for file in "$LOG_DIR"/*.log; do
+            # Define a variable for the output file name
+            output_file="packages_${file##*/}.json"
+
+            # dpkg2json
+            python python/dpkg2json.py --input "$file" --output "$output_file"
+
+            # # Create a temporary file to store the updated JSON
+            # temp_file="temp_${file##*/}.json"
+            # cp "$output_file" "$temp_file"
+
+            # # Get changelog for each package
+            # jq -r 'keys[]' "$output_file" | while read package; do
+            #   changelog=$(apt-get changelog $package 2>/dev/null | head -n 1 || echo "Changelog not available")
+            #   changelog=$(echo "$changelog" | jq -R -s .)
+            #   jq --arg package "$package" --arg changelog "$changelog" \
+            #     '.[$package].changelog = $changelog' "$temp_file" > "$temp_file.tmp" && mv "$temp_file.tmp" "$temp_file"
+            # done
+
+            # # Overwrite the original file with the updated JSON
+            # mv "$temp_file" "$output_file"
+
+            cat "$output_file"
+          done
+
+      - name: Set Git user
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Check for changes
+        id: changes
+        working-directory: ${{ github.workspace }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.PAT }}
+          LOG_CHANGELOG: ${{ github.workspace }}/log/changelog.log
+        run: |
+          # add all changes in ./log to the staging area
+          git add --all .
+
+          # check for changes
+          if git diff --cached --quiet; then
+            echo "No changes to commit" >> ${GITHUB_OUTPUT}
+          else
+            # commit changes
+            if git commit -m "Log dpkg list"; then
+              echo "commit=success" >> ${GITHUB_OUTPUT}
+              echo "changed=true" >> ${GITHUB_OUTPUT}
+              git diff --cached >> ${{ env.LOG_CHANGELOG }}
+
+              # push changes
+              if git push origin ${{ github.ref }}; then
+                echo "push=success" >> ${GITHUB_OUTPUT}
+                echo "status=success" >> ${GITHUB_OUTPUT}
+              else
+                echo "status=failed" >> ${GITHUB_OUTPUT}
+              fi
+            else
+              echo "commit=failed" >> ${GITHUB_OUTPUT}
+            fi
+          fi
+
+      - name: Log in to Docker Hub
+        if: steps.changes.outputs.changed == 'true'
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push image to Docker Hub
+        if: steps.changes.outputs.changed == 'true'
+        run: |
+          function push_image {
+            docker_repo=$1
+            docker_tag=$2
+
+            # Create multi-architecture Docker image
+            docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
+
+            # Push multi-architecture Docker image
+            docker buildx imagetools push $docker_repo:$docker_tag
+          }
+
+          # Push image with tag
+          push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
+
+          # Push image with version if test is successful and not cancelled
+          if [ "${{ steps.test.outputs.status }}" == "success" ]; then
+            push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
+          fi
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Upload Docker images to Github Release
+        if: steps.changes.outputs.changed == 'true'
+        id: github
+        uses: ncipollo/release-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: "${{ env.app }}"
+          tag: "${{ env.app }}"
+          artifacts: "${{ github.workspace }}/${{ env.app }}_*.tar.gz"
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          body: ""
+          # bodyFile: "${{ env.release_md }}"
