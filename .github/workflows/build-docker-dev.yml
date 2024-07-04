@@ -157,7 +157,7 @@ jobs:
               --rm \
               --detach \
               --platform $platform \
-              ${{ env.image }} \
+              ${{ env.image }}:${{ env.tag }} \
               /bin/bash -c "uname -a && sleep infinity"
 
             # Ensure the log directory exists
