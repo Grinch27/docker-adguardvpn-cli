@@ -21,11 +21,11 @@ on:
         required: true
         default: "grinch27/adguardvpn-cli"
         type: string
-      tag:
-        description: "tag"
-        required: true
-        default: "dev"
-        type: string
+      # tag:
+      #   description: "tag"
+      #   required: true
+      #   default: "dev"
+      #   type: string
       # version:
       #   description: "version"
       #   required: false
@@ -39,12 +39,15 @@ on:
       update_channel:
         description: "Update Channel"
         required: false
-        default: "dev"
+        default: "release"
         type: choice
         options:
           - "release"
           - "beta"
           - "nightly"
+
+env:
+  tag: ${{ inputs.update_channel || 'release' }}
 
 jobs:
   build:
@@ -62,7 +65,7 @@ jobs:
       path_dockerfile: ${{ inputs.path_dockerfile || 'dockerfile/Dockerfile' }}
       arch_branch: ${{ inputs.arch_branch || 'linux/amd64,linux/arm64' }}
       repo_dockerhub: ${{ inputs.repo_dockerhub || 'grinch27/adguardvpn-cli' }}
-      tag: ${{ inputs.tag || 'dev' }}
+      # tag: ${{ inputs.tag || 'dev' }}
       # version: ${{ inputs.version }}
       app: adguardvpn-cli
       BASE_IMAGE: debian:stable-slim
