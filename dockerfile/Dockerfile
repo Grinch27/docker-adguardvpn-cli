@@ -30,9 +30,15 @@ RUN apt-get update --ignore-missing \
     && export FILE_SH="install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
     && expect -c "\
-    spawn ${FILE_SH}; \
-    expect \"Would you like to link the binary to /usr/local/bin? [y/N]\" { send \"y\\r\" }; \
-    expect eof\
+        set timeout -1; \
+        spawn ${FILE_SH}; \
+        expect { \
+            -re \".*\\[y/N\\].*\" { \
+                send \"y\\r\"; \
+                exp_continue; \
+            } \
+            eof \
+        } \
     " \
     # && yes "y" | bash ${FILE_SH} \
     # && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
@@ -53,7 +59,7 @@ RUN apt-get update --ignore-missing \
     # && curl -fsSL ${URL_PKG} -o ${pkg_name} \
     # && dpkg -i ${pkg_name} \
     # && rm ${pkg_name} \
-    # ENTRYPOINT startapp.sh
+    # ----- ENTRYPOINT startapp.sh -----
     && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
     && chmod +x /startapp.sh \
     # ===== Cleanup =====
