@@ -162,6 +162,7 @@ jobs:
 
             # Ensure the log directory exists
             mkdir -p ${{ github.workspace }}/log
+            touch ${{ github.workspace }}/log/${filename}.log
 
             # List all installed packages, print the output and save it to a log file
             docker exec ${{ env.container_name }} dpkg --list | tee ${{ github.workspace }}/log/${filename}.log
