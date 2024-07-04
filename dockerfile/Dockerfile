@@ -3,7 +3,7 @@ ARG BASE_IMAGE=debian:slim
 FROM ${BASE_IMAGE}
 
 # update_channel
-ARG update_channel=stable
+ARG update_channel=release
 ENV update_channel=${update_channel}
 
 RUN export DEBIAN_FRONTEND=noninteractive \
