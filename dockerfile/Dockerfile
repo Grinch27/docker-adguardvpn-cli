@@ -29,7 +29,7 @@ RUN apt-get update --ignore-missing \
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
-    && yes | bash ${FILE_SH} \
+    && yes "y" | bash ${FILE_SH} \
     # && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
     # && echo "version=${version}" \
     # # Determine CPU architecture for cpu variable
