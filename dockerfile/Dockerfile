@@ -27,7 +27,7 @@ RUN apt-get update --ignore-missing \
     && export OS_VER=$(lsb_release -cs) \
     # ===== adguardvpn-cli =====
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
-    && export FILE_SH="install.sh" \
+    && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
     && expect -c "\
         set timeout -1; \
