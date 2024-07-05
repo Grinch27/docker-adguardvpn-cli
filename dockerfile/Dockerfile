@@ -15,7 +15,7 @@ RUN apt-get update --ignore-missing \
         # lsb-release \
         # man \
         # expect \
-        # iproute2 \
+        iproute2 \
         # jq \
         # nftables \
         # iputils-ping \
