@@ -319,6 +319,21 @@ jobs:
           fi
       
           echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Upload Docker images to Github Release
+        if: steps.changes.outputs.changed == 'true'
+        id: github
+        uses: ncipollo/release-action@main
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          name: "${{ env.app }}"
+          tag: "${{ env.app }}"
+          artifacts: "${{ github.workspace }}/output/${{ env.app }}_*.tar.gz"
+          allowUpdates: true
+          removeArtifacts: false
+          replacesArtifacts: true
+          body: ""
+          # bodyFile: "${{ env.release_md }}"
       
       - name: Push image to GitHub Package
         if: steps.changes.outputs.changed == 'true'
@@ -335,18 +350,3 @@ jobs:
           docker push ghcr.io/${REPO_OWNER}/${REPO_DOCKERHUB}:${TAG}
 
           echo "status=success" >> ${GITHUB_OUTPUT}
-
-      - name: Upload Docker images to Github Release
-        if: steps.changes.outputs.changed == 'true'
-        id: github
-        uses: ncipollo/release-action@main
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          name: "${{ env.app }}"
-          tag: "${{ env.app }}"
-          artifacts: "${{ github.workspace }}/output/${{ env.app }}_*.tar.gz"
-          allowUpdates: true
-          removeArtifacts: false
-          replacesArtifacts: true
-          body: ""
-          # bodyFile: "${{ env.release_md }}"
