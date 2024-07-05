@@ -69,4 +69,6 @@ RUN apt-get update --ignore-missing \
     # && chmod +x /startapp.sh \
     # ENTRYPOINT ["/startapp.sh"]
 
+EXPOSE 1080
+
 ENTRYPOINT ["/bin/bash", "-c", "uname -a && sleep infinity"]
