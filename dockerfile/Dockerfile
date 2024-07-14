@@ -11,7 +11,7 @@ RUN apt-get update --ignore-missing \
         ca-certificates \
         gpg \
         curl \
-        systemd \
+        # systemd \
         # lsb-release \
         # man \
         # expect \
@@ -32,33 +32,10 @@ RUN apt-get update --ignore-missing \
     && chmod +x ${FILE_SH} \
     && sed -i 's/read -r response < \/dev\/tty/response="y"/g' ${FILE_SH} \
     && sh -v ${FILE_SH} \
-    # ----- check adguardvpn-cli -----
-    # && echo $PATH \
-    # && ls -lh /usr/local/bin/ \
-    # && ls -lh /opt/adguardvpn_cli/adguardvpn-cli \
-    # && yes "y" | bash ${FILE_SH} \
-    # && export version=$(grep "version='" ${FILE_SH} | awk -F"'" '{print $2}') \
-    # && echo "version=${version}" \
-    # # Determine CPU architecture for cpu variable
-    # && export cpu=$(case $(dpkg --print-architecture) in \
-    #     amd64) echo "x86_64" ;; \
-    #     arm64 | aarch64) echo "aarch64" ;; \
-    #     *) echo "unsupported" ;; \
-    #     esac) \
-    # && export exe_name='adguardvpn-cli' \
-    # && export os='linux' \
-    # && export pkg_ext='tar.gz' \
-    # && export pkg_name="${exe_name}-${version}-${os}-${cpu}.${pkg_ext}" \
-    # && echo "pkg_name=${pkg_name}" \
-    # && export URL_PKG="https://github.com/AdguardTeam/AdGuardVPNCLI/releases/download/v${version}-${update_channel}/${pkg_name}" \
-    # # Install adguardvpn-cli package
-    # && curl -fsSL ${URL_PKG} -o ${pkg_name} \
-    # && dpkg -i ${pkg_name} \
-    # && rm ${pkg_name} \
     # ===== Cleanup =====
     # ----- Clean pre-install -----
-    # && apt-get purge --autoremove -y \
-        # curl \
+    && apt-get purge --autoremove -y \
+        curl \
         # lsb-release \
         # expect \
     && apt-get clean \
@@ -68,7 +45,5 @@ RUN apt-get update --ignore-missing \
     # && echo "#!/bin/sh\n${exe_name} --help\n" > /startapp.sh \
     # && chmod +x /startapp.sh \
     # ENTRYPOINT ["/startapp.sh"]
-
-EXPOSE 1080
 
 ENTRYPOINT ["/bin/bash", "-c", "uname -a && sleep infinity"]
