@@ -23,15 +23,15 @@ RUN apk update \
         # sudo \
         # procps \
         tar
-    # ===== adguardvpn-cli =====
+# ===== adguardvpn-cli =====
 RUN export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
     && chmod +x ${FILE_SH} \
     && sed -i 's/read -r response < \/dev\/tty/response="y"/g' ${FILE_SH} \
-    && sh -v ${FILE_SH} \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* \
+    && sh -v ${FILE_SH}
+# ===== clean =====
+RUN rm -rf /var/cache/apk/* \
     && rm -rf /var/log/*.log
 
-ENTRYPOINT ["/bin/bash", "-c", "uname -a && sleep infinity"]
+ENTRYPOINT ["sh", "-c", "uname -a && sleep infinity"]
