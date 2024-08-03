@@ -11,8 +11,8 @@ RUN apk update \
         ca-certificates \
         gpg \
         curl \
-        iproute2 \
         tar \
+        iproute2 \
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
@@ -22,6 +22,7 @@ RUN apk update \
     && apk del --no-cache \
         curl \
         tar \
+        gpg \
     && rm -rf /var/cache/apk/* \
     && rm -rf /var/log/*.log
 
