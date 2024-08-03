@@ -22,9 +22,9 @@ RUN apk update \
         # vim \
         # sudo \
         # procps \
-        tar \
+        tar
     # ===== adguardvpn-cli =====
-    && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
+RUN export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
     && chmod +x ${FILE_SH} \
