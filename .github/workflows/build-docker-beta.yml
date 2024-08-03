@@ -32,14 +32,14 @@ on:
         description: "Base Image"
         type: choice
         required: true
-        default: "debian:stable-slim"
+        default: "alpine:latest"
         options:
           - "debian:stable-slim"
           - "alpine:latest"
 
 env:
   tag: ${{ inputs.update_channel || 'release' }}
-  base_image: ${{ inputs.base_image || 'debian:stable-slim' }}
+  base_image: ${{ inputs.base_image || 'alpine:latest' }}
   path_dockerfile: ${{ inputs.path_dockerfile || 'dockerfile/Dockerfile' }}
 
 jobs:
