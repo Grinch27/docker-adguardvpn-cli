@@ -1,37 +1,29 @@
-# FROM ubuntu:jammy
 ARG BASE_IMAGE=alpine:latest
 FROM ${BASE_IMAGE}
 
-# update_channel
+# 设置更新频道
 ARG update_channel=release
 ENV update_channel=${update_channel}
 
+# 安装依赖，下载并运行安装脚本，最后清理不必要的包
 RUN apk update \
     && apk add --no-cache \
         ca-certificates \
         gpg \
         curl \
-        # systemd \
-        # lsb-release \
-        # man \
-        # expect \
         iproute2 \
-        # jq \
-        # nftables \
-        # iputils-ping \
-        # vim \
-        # sudo \
-        # procps \
-        tar
-# ===== adguardvpn-cli =====
-RUN export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
+        tar \
+    && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
     && chmod +x ${FILE_SH} \
     && sed -i 's/read -r response < \/dev\/tty/response="y"/g' ${FILE_SH} \
-    && sh -v ${FILE_SH}
-# ===== clean =====
-RUN rm -rf /var/cache/apk/* \
+    && sh -v ${FILE_SH} \
+    && apk del --no-cache \
+        curl \
+        tar \
+    && rm -rf /var/cache/apk/* \
     && rm -rf /var/log/*.log
 
+# 设置入口点
 ENTRYPOINT ["sh", "-c", "uname -a && sleep infinity"]
