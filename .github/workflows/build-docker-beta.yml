@@ -6,33 +6,36 @@ on:
     inputs:
       path_dockerfile:
         description: "dockerfile path in repo"
+        type: string
         required: true
         default: "dockerfile/Dockerfile.alpine"
-        type: string
       arch_branch:
         description: "Input arch"
+        type: string
         required: true
         default: "linux/amd64,linux/arm64"
-        type: string
       repo_dockerhub:
         description: "Docker Hub repository"
+        type: string
         required: true
         default: "grinch27/adguardvpn-cli"
-        type: string
       update_channel:
         description: "Update Channel"
+        type: choice
         required: false
         default: "release"
-        type: choice
         options:
           - "release"
           - "beta"
           - "nightly"
       base_image:
         description: "Base Image"
-        required: false
+        type: choice
+        required: true
         default: "debian:stable-slim"
-        type: string
+        options:
+          - "debian:stable-slim"
+          - "alpine:latest"
 
 env:
   tag: ${{ inputs.update_channel || 'release' }}
