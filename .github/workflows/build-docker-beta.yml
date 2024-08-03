@@ -23,7 +23,7 @@ on:
         description: "Update Channel"
         type: choice
         required: false
-        default: "release"
+        default: "nightly"
         options:
           - "release"
           - "beta"
