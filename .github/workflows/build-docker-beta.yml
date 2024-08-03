@@ -1,0 +1,213 @@
+name: Build Docker (Dev)
+
+on:
+  repository_dispatch:
+  workflow_dispatch:
+    inputs:
+      path_dockerfile:
+        description: "dockerfile path in repo"
+        required: true
+        default: "dockerfile/Dockerfile.alpine"
+        type: string
+      arch_branch:
+        description: "Input arch"
+        required: true
+        default: "linux/amd64,linux/arm64"
+        type: string
+      repo_dockerhub:
+        description: "Docker Hub repository"
+        required: true
+        default: "grinch27/adguardvpn-cli"
+        type: string
+      update_channel:
+        description: "Update Channel"
+        required: false
+        default: "release"
+        type: choice
+        options:
+          - "release"
+          - "beta"
+          - "nightly"
+      base_image:
+        description: "Base Image"
+        required: false
+        default: "debian:stable-slim"
+        type: string
+
+env:
+  tag: ${{ inputs.update_channel || 'release' }}
+  base_image: ${{ inputs.base_image || 'debian:stable-slim' }}
+  path_dockerfile: ${{ inputs.path_dockerfile || 'dockerfile/Dockerfile' }}
+
+jobs:
+  build:
+    name: Build Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    services:
+      registry:
+        image: registry:latest
+        ports:
+          - 5000:5000
+    env:
+      arch_branch: ${{ inputs.arch_branch || 'linux/amd64,linux/arm64' }}
+      repo_dockerhub: ${{ inputs.repo_dockerhub || 'grinch27/adguardvpn-cli' }}
+      app: adguardvpn-cli
+      update_channel: ${{ inputs.update_channel || 'release' }}
+    steps:
+      - name: Checkout ${{ github.repository }}
+        uses: actions/checkout@main
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@master
+        with:
+          platforms: ${{ env.arch_branch }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@master
+        with:
+          driver-opts: network=host
+
+      - name: Test Base Image - ${{ env.base_image }}
+        id: base
+        env:
+          container_name: base-test
+        run: |
+          # Read platform information from environment variables
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+
+          for platform in "${platforms[@]}"; do
+            echo "========== Testing Base Image for platform: $platform =========="
+            docker pull --platform $platform ${{ env.base_image }}
+
+            docker run \
+              --name ${{ env.container_name }} \
+              --rm \
+              --detach \
+              --platform $platform \
+              ${{ env.base_image }} \
+              /bin/bash -c "uname -a && sleep infinity"
+
+            # Check if the base image contains 'alpine' (case insensitive)
+            if echo "${{ env.base_image }}" | grep -iq 'alpine'; then
+              echo "Alpine-based system detected"
+              docker exec ${{ env.container_name }} apk info
+            else
+              echo "Non-Alpine system detected, using opkg"
+              docker exec ${{ env.container_name }} dpkg --list
+            fi
+
+            # Stop Docker container
+            docker stop ${{ env.container_name }}
+          done
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Build and push to local registry
+        id: build
+        uses: docker/build-push-action@master
+        with:
+          context: .
+          file: ${{ github.workspace }}/${{ env.path_dockerfile }}
+          no-cache: false
+          platforms: ${{ env.arch_branch }}
+          load: false
+          push: true
+          tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+          build-args: |
+            base_image=${{ env.base_image }}
+            update_channel=${{ env.update_channel }}
+
+      - name: Test Docker image & Check version consistency
+        id: test
+        env:
+          image: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+          container_name: container-test
+          DIR_OUTPUT: "${{ github.workspace }}/output"
+        run: |
+          # Inspect Docker image
+          docker buildx imagetools inspect localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+
+          # Read platform information from environment variables
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+
+          # Initialize an associative array to store version information
+          declare -A versions
+
+          # Test Docker container for each platform
+          for platform in "${platforms[@]}"; do
+            echo "========== Testing Docker container for platform: $platform =========="
+
+            # Pull Docker image & Run Docker container
+            docker pull --platform $platform localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+            docker run \
+              --name ${{ env.container_name }} \
+              --rm \
+              --detach \
+              --platform $platform \
+              ${{ env.image }} \
+              /bin/bash -c "uname -a && sleep infinity"
+            
+            # If the apt policy method fails, try to get version information using adguardvpn-cli --version
+            docker exec ${{ env.container_name }} adguardvpn-cli --version
+            version=$(docker exec ${{ env.container_name }} adguardvpn-cli --version | awk '{print $4}' | cut -d 'v' -f 2)
+            if [ -n "$version" ]; then
+                versions[$version]=1
+            else
+                echo "Unable to get version information for ${env.app}."
+            fi
+
+            # Test DNS settings
+            docker exec ${{ env.container_name }} cat /etc/resolv.conf
+
+            # Stop Docker container
+            docker stop ${{ env.container_name }}
+          done
+
+          # Get all unique version information
+          unique_versions=$(IFS=','; echo "${!versions[*]}")
+          echo "version=$unique_versions" | tee -a ${GITHUB_OUTPUT}
+
+          # Check version consistency
+          IFS=',' read -ra version_array <<< "$unique_versions"
+          if [ "${#version_array[@]}" -eq 1 ]; then
+            echo "status=success" >> ${GITHUB_OUTPUT}
+          else
+            echo "status=failure" >> ${GITHUB_OUTPUT}
+          fi
+
+      - name: Set Git user
+        run: |
+          git config --global user.name 'github-actions'
+          git config --global user.email 'github-actions@github.com'
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Push image to Docker Hub
+        run: |
+          function push_image {
+            docker_repo=$1
+            docker_tag=$2
+
+            # Create multi-architecture Docker image
+            docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
+
+            # Push multi-architecture Docker image
+            docker buildx imagetools push $docker_repo:$docker_tag
+          }
+
+          # Push image with tag
+          push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
+
+          # Push image with version if test is successful and not cancelled
+          if [ "${{ steps.test.outputs.status }}" == "success" ]; then
+            push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
+          fi
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
