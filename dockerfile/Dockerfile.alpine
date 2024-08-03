@@ -1,5 +1,5 @@
 # FROM ubuntu:jammy
-ARG BASE_IMAGE=debian:stable-slim
+ARG BASE_IMAGE=alpine:latest
 FROM ${BASE_IMAGE}
 
 # update_channel
@@ -11,7 +11,7 @@ RUN apk update \
         ca-certificates \
         gpg \
         curl \
-        systemd \
+        # systemd \
         # lsb-release \
         # man \
         # expect \
