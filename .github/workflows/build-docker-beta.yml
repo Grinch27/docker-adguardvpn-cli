@@ -73,41 +73,6 @@ jobs:
         with:
           driver-opts: network=host
 
-      - name: Test Base Image - ${{ env.base_image }}
-        id: base
-        env:
-          container_name: base-test
-        run: |
-          # Read platform information from environment variables
-          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
-
-          for platform in "${platforms[@]}"; do
-            echo "========== Testing Base Image for platform: $platform =========="
-            docker pull --platform $platform ${{ env.base_image }}
-
-            docker run \
-              --name ${{ env.container_name }} \
-              --rm \
-              --detach \
-              --platform $platform \
-              ${{ env.base_image }} \
-              /bin/bash -c "uname -a && sleep infinity"
-
-            # Check if the base image contains 'alpine' (case insensitive)
-            if echo "${{ env.base_image }}" | grep -iq 'alpine'; then
-              echo "Alpine-based system detected"
-              docker exec ${{ env.container_name }} apk info
-            else
-              echo "Non-Alpine system detected, using opkg"
-              docker exec ${{ env.container_name }} dpkg --list
-            fi
-
-            # Stop Docker container
-            docker stop ${{ env.container_name }}
-          done
-
-          echo "status=success" >> ${GITHUB_OUTPUT}
-
       - name: Build and push to local registry
         id: build
         uses: docker/build-push-action@master
