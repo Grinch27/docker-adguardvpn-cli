@@ -9,10 +9,10 @@ ENV update_channel=${update_channel}
 RUN apk update \
     && apk add --no-cache \
         ca-certificates \
-        gpg \
         curl \
         tar \
-        iproute2 \
+        gpg \
+        # iproute2 \
     && export URL_SH="https://raw.githubusercontent.com/AdguardTeam/AdGuardVPNCLI/master/scripts/${update_channel}/install.sh" \
     && export FILE_SH="/install.sh" \
     && curl -fsSL ${URL_SH} -o ${FILE_SH} \
