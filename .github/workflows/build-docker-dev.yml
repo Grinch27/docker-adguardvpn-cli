@@ -53,11 +53,11 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
-    services:
-      registry:
-        image: registry:latest
-        ports:
-          - 5000:5000
+    # services:
+    #   registry:
+    #     image: registry:latest
+    #     ports:
+    #       - 5000:5000
     steps:
       - name: Log in to Docker Hub
         uses: docker/login-action@master
@@ -78,22 +78,7 @@ jobs:
         with:
           driver-opts: network=host
 
-      # - name: Build and push to local registry
-      #   id: build
-      #   uses: docker/build-push-action@master
-      #   with:
-      #     context: .
-      #     file: ${{ github.workspace }}/${{ env.path_dockerfile }}
-      #     no-cache: false
-      #     platforms: ${{ env.arch_branch }}
-      #     load: false
-      #     push: true
-      #     tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
-      #     build-args: |
-      #       base_image=${{ env.base_image }}
-      #       update_channel=${{ env.update_channel }}
-
-      - name: Build and push to local registry
+      - name: Build Docker image
         working-directory: ${{ github.workspace }}
         run: |
           docker buildx build \
@@ -103,8 +88,37 @@ jobs:
             --build-arg base_image=${{ env.base_image }} \
             --build-arg update_channel=${{ env.update_channel }} \
             --push \
+            --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
             .
           echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Upload Docker image artifact
+        uses: actions/upload-artifact@main
+        with:
+          name: docker-image
+          path: ${{ github.workspace }}/multi-platform.tar
+
+  test:
+    name: Test Docker Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    services:
+      registry:
+        image: registry:latest
+        ports:
+          - 5000:5000
+    steps:
+      - name: Download Docker image artifact
+        uses: actions/download-artifact@v2
+        with:
+          name: docker-image
+          path: ${{ github.workspace }}/multi-platform.tar
+
+      - name: Load Docker image
+        run: |
+          docker load -i ${{ github.workspace }}/multi-platform.tar
 
       - name: Test Docker image & Check version consistency
         id: test
@@ -164,25 +178,25 @@ jobs:
             echo "status=failure" >> ${GITHUB_OUTPUT}
           fi
 
-      - name: Push image to Docker Hub
-        run: |
-          function push_image {
-            docker_repo=$1
-            docker_tag=$2
+      # - name: Push image to Docker Hub
+      #   run: |
+      #     function push_image {
+      #       docker_repo=$1
+      #       docker_tag=$2
 
-            # Create multi-architecture Docker image
-            docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
+      #       # Create multi-architecture Docker image
+      #       docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
 
-            # Push multi-architecture Docker image
-            docker buildx imagetools push $docker_repo:$docker_tag
-          }
+      #       # Push multi-architecture Docker image
+      #       docker buildx imagetools push $docker_repo:$docker_tag
+      #     }
 
-          # Push image with tag
-          push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
+      #     # Push image with tag
+      #     push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
 
-          # Push image with version if test is successful and not cancelled
-          if [ "${{ steps.test.outputs.status }}" == "success" ]; then
-            push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
-          fi
+      #     # Push image with version if test is successful and not cancelled
+      #     if [ "${{ steps.test.outputs.status }}" == "success" ]; then
+      #       push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
+      #     fi
 
-          echo "status=success" >> ${GITHUB_OUTPUT}
+      #     echo "status=success" >> ${GITHUB_OUTPUT}
