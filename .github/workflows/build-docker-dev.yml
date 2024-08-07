@@ -110,7 +110,7 @@ jobs:
           - 5000:5000
     steps:
       - name: Download Docker image artifact
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@main
         with:
           name: docker-image
           path: ${{ github.workspace }}/multi-platform.tar
