@@ -14,11 +14,14 @@ on:
         type: string
         required: true
         default: "linux/amd64,linux/arm64"
-      repo_dockerhub:
-        description: "Docker Hub repository"
-        type: string
+      base_image:
+        description: "Base Image"
+        type: choice
         required: true
-        default: "grinch27/adguardvpn-cli"
+        default: "alpine:latest"
+        options:
+          - "debian:stable-slim"
+          - "alpine:latest"
       update_channel:
         description: "Update Channel"
         type: choice
@@ -28,19 +31,20 @@ on:
           - "release"
           - "beta"
           - "nightly"
-      base_image:
-        description: "Base Image"
-        type: choice
+      repo_dockerhub:
+        description: "Docker Hub repository"
+        type: string
         required: true
-        default: "alpine:latest"
-        options:
-          - "debian:stable-slim"
-          - "alpine:latest"
+        default: "grinch27/adguardvpn-cli"
 
 env:
   tag: ${{ inputs.update_channel || 'release' }}
   base_image: ${{ inputs.base_image || 'alpine:latest' }}
   path_dockerfile: ${{ inputs.path_dockerfile || 'dockerfile/Dockerfile' }}
+  arch_branch: ${{ inputs.arch_branch || 'linux/amd64,linux/arm64' }}
+  repo_dockerhub: ${{ inputs.repo_dockerhub || 'grinch27/adguardvpn-cli' }}
+  app: adguardvpn-cli
+  update_channel: ${{ inputs.update_channel || 'release' }}
 
 jobs:
   build:
@@ -54,12 +58,13 @@ jobs:
         image: registry:latest
         ports:
           - 5000:5000
-    env:
-      arch_branch: ${{ inputs.arch_branch || 'linux/amd64,linux/arm64' }}
-      repo_dockerhub: ${{ inputs.repo_dockerhub || 'grinch27/adguardvpn-cli' }}
-      app: adguardvpn-cli
-      update_channel: ${{ inputs.update_channel || 'release' }}
     steps:
+      - name: Log in to Docker Hub
+        uses: docker/login-action@master
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
       - name: Checkout ${{ github.repository }}
         uses: actions/checkout@main
 
@@ -145,17 +150,6 @@ jobs:
           else
             echo "status=failure" >> ${GITHUB_OUTPUT}
           fi
-
-      - name: Set Git user
-        run: |
-          git config --global user.name 'github-actions'
-          git config --global user.email 'github-actions@github.com'
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@master
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Push image to Docker Hub
         run: |
