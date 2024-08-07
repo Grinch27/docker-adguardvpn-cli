@@ -1,4 +1,4 @@
-name: Build Docker (Beta)
+name: Build Docker (Dev)
 
 on:
   repository_dispatch:
@@ -78,20 +78,20 @@ jobs:
         with:
           driver-opts: network=host
 
-      - name: Build and push to local registry
-        id: build
-        uses: docker/build-push-action@master
-        with:
-          context: .
-          file: ${{ github.workspace }}/${{ env.path_dockerfile }}
-          no-cache: false
-          platforms: ${{ env.arch_branch }}
-          load: false
-          push: true
-          tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
-          build-args: |
-            base_image=${{ env.base_image }}
-            update_channel=${{ env.update_channel }}
+      # - name: Build and push to local registry
+      #   id: build
+      #   uses: docker/build-push-action@master
+      #   with:
+      #     context: .
+      #     file: ${{ github.workspace }}/${{ env.path_dockerfile }}
+      #     no-cache: false
+      #     platforms: ${{ env.arch_branch }}
+      #     load: false
+      #     push: true
+      #     tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+      #     build-args: |
+      #       base_image=${{ env.base_image }}
+      #       update_channel=${{ env.update_channel }}
 
       - name: Build and push to local registry
         working-directory: ${{ github.workspace }}
