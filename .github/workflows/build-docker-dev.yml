@@ -56,7 +56,7 @@ jobs:
     outputs:
       changed: ${{ steps.summary.outputs.changed }}
     steps:
-      - name: Check Base image - ${{ env.BASE_IMAGE }}
+      - name: Check Base image - ${{ env.base_image }}
         id: base
         env:
           container_name: base-image
@@ -65,14 +65,14 @@ jobs:
           IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
 
           for platform in "${platforms[@]}"; do
-            echo "========== Base Image ${{ env.BASE_IMAGE }} $platform =========="
-            docker pull --platform ${platform} ${{ env.BASE_IMAGE }}
+            echo "========== Base Image ${{ env.base_image }} $platform =========="
+            docker pull --platform ${platform} ${{ env.base_image }}
 
             # Inspect the image creation time
-            docker inspect --platform ${platform} ${{ env.BASE_IMAGE }}'
+            docker inspect --platform ${platform} ${{ env.base_image }}'
 
             # Inspect the image manifest
-            # docker manifest inspect ${{ env.BASE_IMAGE }}
+            # docker manifest inspect ${{ env.base_image }}
 
             # Stop Docker container
             docker stop ${{ env.container_name }}
