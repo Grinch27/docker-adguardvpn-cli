@@ -94,7 +94,7 @@ jobs:
           # fi
 
           # debug
-          exit 1
+          # exit 1
 
   build:
     name: Build Docker Image
