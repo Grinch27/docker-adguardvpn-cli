@@ -215,25 +215,25 @@ jobs:
             echo "status=failure" >> ${GITHUB_OUTPUT}
           fi
 
-      - name: Push image to Docker Hub
-        run: |
-          function push_image {
-            docker_repo=$1
-            docker_tag=$2
+      # - name: Push image to Docker Hub
+      #   run: |
+      #     function push_image {
+      #       docker_repo=$1
+      #       docker_tag=$2
 
-            # Create multi-architecture Docker image
-            docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
+      #       # Create multi-architecture Docker image
+      #       docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
 
-            # Push multi-architecture Docker image
-            docker buildx imagetools push $docker_repo:$docker_tag
-          }
+      #       # Push multi-architecture Docker image
+      #       docker buildx imagetools push $docker_repo:$docker_tag
+      #     }
 
-          # Push image with tag
-          push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
+      #     # Push image with tag
+      #     push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
 
-          # Push image with version if test is successful and not cancelled
-          if [ "${{ steps.test.outputs.status }}" == "success" ]; then
-            push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
-          fi
+      #     # Push image with version if test is successful and not cancelled
+      #     if [ "${{ steps.test.outputs.status }}" == "success" ]; then
+      #       push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
+      #     fi
 
-          echo "status=success" >> ${GITHUB_OUTPUT}
+      #     echo "status=success" >> ${GITHUB_OUTPUT}
