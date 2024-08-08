@@ -1,4 +1,4 @@
-name: Build Docker (Dev)
+name: Build Docker (Beta)
 
 on:
   repository_dispatch:
@@ -43,21 +43,72 @@ env:
   path_dockerfile: ${{ inputs.path_dockerfile || 'dockerfile/Dockerfile' }}
   arch_branch: ${{ inputs.arch_branch || 'linux/amd64,linux/arm64' }}
   repo_dockerhub: ${{ inputs.repo_dockerhub || 'grinch27/adguardvpn-cli' }}
-  app: adguardvpn-cli
   update_channel: ${{ inputs.update_channel || 'release' }}
+  app: adguardvpn-cli
 
 jobs:
+  check:
+    name: check software version
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+    outputs:
+      changed: ${{ steps.summary.outputs.changed }}
+    steps:
+      - name: Check Base image - ${{ env.BASE_IMAGE }}
+        id: base
+        env:
+          container_name: base-image
+        run: |
+          # Read platform information from environment variables
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+
+          for platform in "${platforms[@]}"; do
+            echo "========== Base Image ${{ env.BASE_IMAGE }} $platform =========="
+            docker pull --platform ${platform} ${{ env.BASE_IMAGE }}
+
+            # Inspect the image creation time
+            docker inspect --platform ${platform} ${{ env.BASE_IMAGE }}'
+
+            # Inspect the image manifest
+            # docker manifest inspect ${{ env.BASE_IMAGE }}
+
+            # Stop Docker container
+            docker stop ${{ env.container_name }}
+          done
+
+          echo "changed=true" >> ${GITHUB_OUTPUT}
+
+      - name: Check version {{ env.app }}
+        id: app
+        run: |
+          # check version of software
+          echo "changed=true" >> ${GITHUB_OUTPUT}
+
+      - name: summary
+        id: summary
+        run: |
+          # if [ "${{ steps.base.outputs.changed }}" == 'true' ] && [ "${{ steps.app.outputs.changed }}" == 'true' ]; then
+          #   echo "changed=true" >> ${GITHUB_OUTPUT}
+          # fi
+          
+          # debug
+          echo "changed=false" >> ${GITHUB_OUTPUT}
+
   build:
     name: Build Docker Image
     runs-on: ubuntu-latest
+    needs: check
+    if: ${{ needs.build.outputs.changed }} == 'true'
     permissions:
       contents: write
       pull-requests: write
-    # services:
-    #   registry:
-    #     image: registry:latest
-    #     ports:
-    #       - 5000:5000
+    services:
+      registry:
+        image: registry:latest
+        ports:
+          - 5000:5000
     steps:
       - name: Log in to Docker Hub
         uses: docker/login-action@master
@@ -78,46 +129,32 @@ jobs:
         with:
           driver-opts: network=host
 
-      - name: Build Docker image
-        working-directory: ${{ github.workspace }}
+      - name: Build and save Docker image as tar
         run: |
           docker buildx build \
-            --platform ${{ env.arch_branch }} \
-            --file ${{ github.workspace }}/${{ env.path_dockerfile }} \
-            --tag localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} \
+            --platform linux/amd64,linux/arm64 \
+            --file ./Dockerfile \
+            --tag localhost:5000/my-image:latest \
             --build-arg base_image=${{ env.base_image }} \
             --build-arg update_channel=${{ env.update_channel }} \
             --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
             .
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Upload Docker image artifact
-        uses: actions/upload-artifact@main
-        with:
-          name: docker-image
-          path: ${{ github.workspace }}/multi-platform.tar
-
-  test:
-    name: Test Docker Image
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pull-requests: write
-    services:
-      registry:
-        image: registry:latest
-        ports:
-          - 5000:5000
-    steps:
-      - name: Download Docker image artifact
-        uses: actions/download-artifact@main
-        with:
-          name: docker-image
-          path: ${{ github.workspace }}/multi-platform.tar
-
-      - name: Load Docker image
-        run: |
-          docker load -i ${{ github.workspace }}/multi-platform.tar
+      # - name: Build and push to local registry
+      #   id: build
+      #   uses: docker/build-push-action@master
+      #   with:
+      #     context: .
+      #     file: ${{ github.workspace }}/${{ env.path_dockerfile }}
+      #     no-cache: false
+      #     platforms: ${{ env.arch_branch }}
+      #     load: false
+      #     push: true
+      #     tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
+      #     build-args: |
+      #       base_image=${{ env.base_image }}
+      #       update_channel=${{ env.update_channel }}
 
       - name: Test Docker image & Check version consistency
         id: test
@@ -177,25 +214,25 @@ jobs:
             echo "status=failure" >> ${GITHUB_OUTPUT}
           fi
 
-      # - name: Push image to Docker Hub
-      #   run: |
-      #     function push_image {
-      #       docker_repo=$1
-      #       docker_tag=$2
+      - name: Push image to Docker Hub
+        run: |
+          function push_image {
+            docker_repo=$1
+            docker_tag=$2
 
-      #       # Create multi-architecture Docker image
-      #       docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
+            # Create multi-architecture Docker image
+            docker buildx imagetools create --tag $docker_repo:$docker_tag localhost:5000/$docker_repo:${{ env.tag }}
 
-      #       # Push multi-architecture Docker image
-      #       docker buildx imagetools push $docker_repo:$docker_tag
-      #     }
+            # Push multi-architecture Docker image
+            docker buildx imagetools push $docker_repo:$docker_tag
+          }
 
-      #     # Push image with tag
-      #     push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
+          # Push image with tag
+          push_image ${{ env.repo_dockerhub }} ${{ env.tag }}
 
-      #     # Push image with version if test is successful and not cancelled
-      #     if [ "${{ steps.test.outputs.status }}" == "success" ]; then
-      #       push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
-      #     fi
+          # Push image with version if test is successful and not cancelled
+          if [ "${{ steps.test.outputs.status }}" == "success" ]; then
+            push_image ${{ env.repo_dockerhub }} ${{ steps.test.outputs.version }}
+          fi
 
-      #     echo "status=success" >> ${GITHUB_OUTPUT}
+          echo "status=success" >> ${GITHUB_OUTPUT}
