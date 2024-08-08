@@ -69,14 +69,14 @@ jobs:
             docker pull --platform ${platform} ${{ env.base_image }}
 
             # Inspect the image creation time
-            docker inspect --platform ${platform} ${{ env.base_image }}
-
-            # Inspect the image manifest
-            # docker manifest inspect ${{ env.base_image }}
+            # docker inspect --platform ${platform} ${{ env.base_image }}
 
             # Stop Docker container
-            docker stop ${{ env.container_name }}
+            # docker stop ${{ env.container_name }}
           done
+
+          # Inspect the image manifest
+          docker manifest inspect ${{ env.base_image }}
 
           echo "changed=true" >> ${GITHUB_OUTPUT}
 
