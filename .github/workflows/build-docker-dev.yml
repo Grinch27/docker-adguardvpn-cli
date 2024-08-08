@@ -69,7 +69,7 @@ jobs:
             docker pull --platform ${platform} ${{ env.base_image }}
 
             # Inspect the image creation time
-            docker inspect --platform ${platform} ${{ env.base_image }}'
+            docker inspect --platform ${platform} ${{ env.base_image }}
 
             # Inspect the image manifest
             # docker manifest inspect ${{ env.base_image }}
