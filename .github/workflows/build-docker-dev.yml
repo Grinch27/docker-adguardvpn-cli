@@ -1,4 +1,4 @@
-name: Build Docker (Beta)
+name: Build Docker (Dev)
 
 on:
   repository_dispatch:
@@ -92,7 +92,7 @@ jobs:
           # if [ "${{ steps.base.outputs.changed }}" == 'true' ] && [ "${{ steps.app.outputs.changed }}" == 'true' ]; then
           #   echo "changed=true" >> ${GITHUB_OUTPUT}
           # fi
-          
+
           # debug
           echo "changed=false" >> ${GITHUB_OUTPUT}
 
