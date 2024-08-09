@@ -91,7 +91,8 @@ jobs:
             # Stop Docker container
             # docker stop ${{ env.container_name }}
 
-            skopeo inspect --override-arch=${platform} docker://docker.io/library/${{ env.base_image }}
+            arch=$(echo $platform | awk -F'/' '{print $2}')
+            skopeo inspect --override-arch=${arch} docker://docker.io/library/${{ env.base_image }}
           done
 
           # Inspect the image manifest
