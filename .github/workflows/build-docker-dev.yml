@@ -104,32 +104,33 @@ jobs:
 
           echo "changed=true" >> ${GITHUB_OUTPUT}
 
-      # - name: Check DockerHub repo - ${{ env.repo_dockerhub }}:${{ env.tag }}
-      #   id: repo
-      #   env:
-      #     tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
-      #   run: |
-      #     IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
-      #     for platform in "${platforms[@]}"; do
-      #       echo "========== ${{ env.tag_pull }} ${platform} =========="
-      #       json_output=$(skopeo inspect \
-      #         --override-os=$(echo $platform | awk -F'/' '{print $1}') \
-      #         --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
-      #         --format=json \
-      #         docker://docker.io/library/${{ env.tag_pull }})
+      - name: Check DockerHub repo - ${{ env.repo_dockerhub }}:${{ env.tag }}
+        id: repo
+        env:
+          tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
+        run: |
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+          for platform in "${platforms[@]}"; do
+            echo "========== ${{ env.tag_pull }} ${platform} =========="
+            json_output=$(skopeo inspect \
+              --override-os=$(echo $platform | awk -F'/' '{print $1}') \
+              --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
+              --format=json \
+              --creds=${{ secrets.DOCKER_USERNAME }}:${{ secrets.DOCKER_PASSWORD }} \
+              docker://docker.io/library/${{ env.tag_pull }})
 
-      #       created=$(echo $json_output | jq -r '.Created')
-      #       docker_version=$(echo $json_output | jq -r '.DockerVersion')
-      #       layers=$(echo $json_output | jq -r '.Layers')
-      #       first_layer=$(echo $layers | jq -r '.[0]')
+            created=$(echo $json_output | jq -r '.Created')
+            docker_version=$(echo $json_output | jq -r '.DockerVersion')
+            layers=$(echo $json_output | jq -r '.Layers')
+            first_layer=$(echo $layers | jq -r '.[0]')
 
-      #       echo "Created: $created"
-      #       echo "Docker Version: $docker_version"
-      #       echo "Layers: $layers"
-      #       echo "First Layer: $first_layer"
-      #     done
+            echo "Created: $created"
+            echo "Docker Version: $docker_version"
+            echo "Layers: $layers"
+            echo "First Layer: $first_layer"
+          done
 
-      #     echo "changed=true" >> ${GITHUB_OUTPUT}
+          echo "changed=true" >> ${GITHUB_OUTPUT}
 
       - name: Check version - ${{ env.app }}
         id: app
@@ -200,14 +201,12 @@ jobs:
         with:
           driver-opts: network=host
 
-      - name: Build & Record log
+      - name: Build and push to local registry
         env:
           dockerfile: "${{ github.workspace }}/${{ env.path_dockerfile }}"
           tag_push: "${{ env.repo_dockerhub }}:${{ env.tag }}"
-          # logfile: "${{ github.workspace }}/build.log"
         run: |
           # --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
-          # --progress=plain \
           docker buildx build \
             --platform ${{ env.arch_branch }} \
             --file ${{ env.dockerfile }} \
@@ -216,23 +215,25 @@ jobs:
             --build-arg update_channel=${{ env.update_channel }} \
             --push \
             .
-            # . > ${{ env.logfile }} 2>&1
-            
           echo "status=success" >> ${GITHUB_OUTPUT}
 
-      - name: Inspect Docker image layers with skopeo
-        env:
-          tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
-        run: |
-          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
-          for platform in "${platforms[@]}"; do
-            skopeo inspect \
-              --override-os=$(echo $platform | awk -F'/' '{print $1}') \
-              --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
-              --format=json \
-              --tls-verify=false \
-              docker://localhost:5000/${{ env.tag_pull }}
-          done
+      # - name: Inspect Docker image layers with skopeo
+      #   id: layer
+      #   env:
+      #     tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
+      #   working-directory: ${{ github.workspace }}
+      #   run: |
+      #     IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+      #     for platform in "${platforms[@]}"; do
+      #       json_output=$(skopeo inspect \
+      #         --override-os=$(echo $platform | awk -F'/' '{print $1}') \
+      #         --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
+      #         --format=json \
+      #         --tls-verify=false \
+      #         docker://localhost:5000/${{ env.tag_pull }})
+
+      #         cat << 'EOF' > ./output/${platform}.json
+      #     done
 
       - name: Test Docker image & Check version consistency
         id: test
