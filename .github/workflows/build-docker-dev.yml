@@ -105,11 +105,13 @@ jobs:
             # 使用 jq 解析 JSON 输出并提取所需信息
             created=$(echo $json_output | jq -r '.Created')
             docker_version=$(echo $json_output | jq -r '.DockerVersion')
-            layers=$(echo $json_output | jq -r '.Layers[]')
+            layers=$(echo $json_output | jq -r '.Layers')
+            first_layer=$(echo $layers | jq -r '.[0]')
 
             echo "Created: $created"
             echo "Docker Version: $docker_version"
             echo "Layers: $layers"
+            echo "First Layer: $first_layer"
           done
 
           # Inspect the image manifest
