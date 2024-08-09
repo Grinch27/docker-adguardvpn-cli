@@ -89,7 +89,7 @@ jobs:
               --override-os=$(echo $platform | awk -F'/' '{print $1}') \
               --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
               --format=json \
-              docker://docker.io/library/${{ env.tag_pull }})
+              docker://docker.io/${{ env.tag_pull }})
 
             created=$(echo $json_output | jq -r '.Created')
             docker_version=$(echo $json_output | jq -r '.DockerVersion')
@@ -122,7 +122,7 @@ jobs:
               --override-os=$(echo $platform | awk -F'/' '{print $1}') \
               --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
               --format=json \
-              docker://docker.io/library/${{ env.tag_pull }})
+              docker://docker.io/${{ env.tag_pull }})
 
             created=$(echo $json_output | jq -r '.Created')
             docker_version=$(echo $json_output | jq -r '.DockerVersion')
