@@ -95,9 +95,21 @@ jobs:
             # Stop Docker container
             # docker stop ${{ env.container_name }}
 
-            os=$(echo $platform | awk -F'/' '{print $1}')
-            arch=$(echo $platform | awk -F'/' '{print $2}')
-            skopeo inspect --override-os=${os} --override-arch=${arch} docker://docker.io/library/${{ env.base_image }}
+            # Skopeo inspect the image
+            json_output=$(skopeo inspect \
+              --override-os=$(echo $platform | awk -F'/' '{print $1}') \
+              --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
+              --format=json \
+              docker://docker.io/library/${{ env.base_image }})
+              
+            # 使用 jq 解析 JSON 输出并提取所需信息
+            created=$(echo $json_output | jq -r '.Created')
+            docker_version=$(echo $json_output | jq -r '.DockerVersion')
+            layers=$(echo $json_output | jq -r '.Layers')
+
+            echo "Created: $created"
+            echo "Docker Version: $docker_version"
+            echo "Layers: $layers"
           done
 
           # Inspect the image manifest
