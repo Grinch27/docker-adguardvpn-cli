@@ -160,6 +160,27 @@ jobs:
         ports:
           - 5000:5000
     steps:
+      - name: Initialization environment
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          packages_install=(
+            "curl"
+          )
+          packages_extra=(
+            "skopeo"
+            "jq"
+          )
+          sudo -E apt-get -qq -y update
+          sudo -E apt-get -y install "${packages_install[@]}"
+          sudo -E apt-get -y install "${packages_extra[@]}"
+          sudo -E apt-get -qq -y autoremove --purge
+          sudo -E apt-get -qq clean
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Log in to Docker Hub
         uses: docker/login-action@master
         with:
@@ -179,19 +200,29 @@ jobs:
         with:
           driver-opts: network=host
 
-      - name: Build and save Docker image as tar
+      - name: Build & Record log
+        env:
+          dockerfile: "${{ github.workspace }}/${{ env.path_dockerfile }}"
+          tag_push: "${{ env.repo_dockerhub }}:${{ env.tag }}"
+          # logfile: "${{ github.workspace }}/build.log"
         run: |
+          # --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
+          # --progress=plain \
           docker buildx build \
             --platform ${{ env.arch_branch }} \
-            --file ${{ github.workspace }}/${{ env.path_dockerfile }} \
-            --tag localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} \
+            --file ${{ env.dockerfile }} \
+            --tag localhost:5000/${{ env.tag_push }} \
             --build-arg base_image=${{ env.base_image }} \
             --build-arg update_channel=${{ env.update_channel }} \
-            --progress=plain \
             --push \
             .
-            # --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
+            # . > ${{ env.logfile }} 2>&1
+            
           echo "status=success" >> ${GITHUB_OUTPUT}
+
+      - name: Inspect Docker image layers with skopeo
+        run: |
+          skopeo inspect docker://localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} | jq '.Layers'
 
       - name: Test Docker image & Check version consistency
         id: test
