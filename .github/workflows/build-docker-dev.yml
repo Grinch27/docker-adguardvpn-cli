@@ -82,20 +82,15 @@ jobs:
         env:
           tag_pull: "${{ env.base_image }}"
         run: |
-          # Read platform information from environment variables
           IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
-
           for platform in "${platforms[@]}"; do
             echo "========== Base Image ${{ env.tag_pull }} ${platform} =========="
-
-            # Skopeo inspect the image
             json_output=$(skopeo inspect \
               --override-os=$(echo $platform | awk -F'/' '{print $1}') \
               --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
               --format=json \
               docker://docker.io/library/${{ env.tag_pull }})
 
-            # 使用 jq 解析 JSON 输出并提取所需信息
             created=$(echo $json_output | jq -r '.Created')
             docker_version=$(echo $json_output | jq -r '.DockerVersion')
             layers=$(echo $json_output | jq -r '.Layers')
@@ -109,37 +104,32 @@ jobs:
 
           echo "changed=true" >> ${GITHUB_OUTPUT}
 
-      - name: Check DockerHub repo - ${{ env.repo_dockerhub }}:${{ env.tag }}
-        id: repo
-        env:
-          tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
-        run: |
-          # Read platform information from environment variables
-          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+      # - name: Check DockerHub repo - ${{ env.repo_dockerhub }}:${{ env.tag }}
+      #   id: repo
+      #   env:
+      #     tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
+      #   run: |
+      #     IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+      #     for platform in "${platforms[@]}"; do
+      #       echo "========== ${{ env.tag_pull }} ${platform} =========="
+      #       json_output=$(skopeo inspect \
+      #         --override-os=$(echo $platform | awk -F'/' '{print $1}') \
+      #         --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
+      #         --format=json \
+      #         docker://docker.io/library/${{ env.tag_pull }})
 
-          for platform in "${platforms[@]}"; do
-            echo "========== ${{ env.tag_pull }} ${platform} =========="
+      #       created=$(echo $json_output | jq -r '.Created')
+      #       docker_version=$(echo $json_output | jq -r '.DockerVersion')
+      #       layers=$(echo $json_output | jq -r '.Layers')
+      #       first_layer=$(echo $layers | jq -r '.[0]')
 
-            # Skopeo inspect the image
-            json_output=$(skopeo inspect \
-              --override-os=$(echo $platform | awk -F'/' '{print $1}') \
-              --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
-              --format=json \
-              docker://docker.io/library/${{ env.tag_pull }})
+      #       echo "Created: $created"
+      #       echo "Docker Version: $docker_version"
+      #       echo "Layers: $layers"
+      #       echo "First Layer: $first_layer"
+      #     done
 
-            # 使用 jq 解析 JSON 输出并提取所需信息
-            created=$(echo $json_output | jq -r '.Created')
-            docker_version=$(echo $json_output | jq -r '.DockerVersion')
-            layers=$(echo $json_output | jq -r '.Layers')
-            first_layer=$(echo $layers | jq -r '.[0]')
-
-            echo "Created: $created"
-            echo "Docker Version: $docker_version"
-            echo "Layers: $layers"
-            echo "First Layer: $first_layer"
-          done
-
-          echo "changed=true" >> ${GITHUB_OUTPUT}
+      #     echo "changed=true" >> ${GITHUB_OUTPUT}
 
       - name: Check version - ${{ env.app }}
         id: app
