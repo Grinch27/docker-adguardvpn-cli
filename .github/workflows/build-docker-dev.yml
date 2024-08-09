@@ -232,6 +232,7 @@ jobs:
               --format=json \
               --tls-verify=false \
               docker://localhost:5000/${{ env.tag_pull }}
+          done
 
       - name: Test Docker image & Check version consistency
         id: test
