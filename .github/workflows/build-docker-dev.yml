@@ -83,19 +83,19 @@ jobs:
 
           for platform in "${platforms[@]}"; do
             echo "========== Base Image ${{ env.base_image }} $platform =========="
-            docker pull --platform ${platform} ${{ env.base_image }}
+            # docker pull --platform ${platform} ${{ env.base_image }}
 
             # Inspect the image creation time
             # docker inspect --platform ${platform} ${{ env.base_image }}
 
             # Stop Docker container
             # docker stop ${{ env.container_name }}
+
+            skopeo inspect --override-arch=${platform} docker://docker.io/library/${{ env.base_image }}
           done
 
           # Inspect the image manifest
-          docker manifest inspect ${{ env.base_image }}
-
-          skopeo inspect docker://docker.io/library/${{ env.base_image }}
+          # docker manifest inspect ${{ env.base_image }}
 
           echo "changed=true" >> ${GITHUB_OUTPUT}
 
