@@ -187,6 +187,7 @@ jobs:
             --tag localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} \
             --build-arg base_image=${{ env.base_image }} \
             --build-arg update_channel=${{ env.update_channel }} \
+            --progress=plain \
             --push \
             .
             # --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
