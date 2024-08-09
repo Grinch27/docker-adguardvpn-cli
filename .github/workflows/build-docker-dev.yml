@@ -221,8 +221,17 @@ jobs:
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Inspect Docker image layers with skopeo
+        env:
+          tag_pull: "${{ env.repo_dockerhub }}:${{ env.tag }}"
         run: |
-          skopeo inspect docker://localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }} | jq '.Layers'
+          IFS=',' read -ra platforms <<< "${{ env.arch_branch }}"
+          for platform in "${platforms[@]}"; do
+            skopeo inspect \
+              --override-os=$(echo $platform | awk -F'/' '{print $1}') \
+              --override-arch=$(echo $platform | awk -F'/' '{print $2}') \
+              --format=json \
+              --tls-verify=false \
+              docker://localhost:5000/${{ env.tag_pull }}
 
       - name: Test Docker image & Check version consistency
         id: test
