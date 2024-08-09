@@ -56,6 +56,23 @@ jobs:
     outputs:
       changed: ${{ steps.summary.outputs.changed }}
     steps:
+      - name: Initialization environment
+        id: init
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        working-directory: /
+        run: |
+          echo -e "Current working directory: $(pwd)"
+          packages_install=(
+            "skopeo"
+          )
+          sudo -E apt-get -qq -y update
+          sudo -E apt-get -y install "${packages_install[@]}"
+          sudo -E apt-get -qq -y autoremove --purge
+          sudo -E apt-get -qq clean
+
+          echo "status=success" >> ${GITHUB_OUTPUT}
+
       - name: Check Base image - ${{ env.base_image }}
         id: base
         env:
@@ -77,6 +94,8 @@ jobs:
 
           # Inspect the image manifest
           docker manifest inspect ${{ env.base_image }}
+
+          skopeo inspect docker://docker.io/library/${{ env.base_image }}
 
           echo "changed=true" >> ${GITHUB_OUTPUT}
 
@@ -140,21 +159,6 @@ jobs:
             .
             # --output type=tar,dest=${{ github.workspace }}/multi-platform.tar \
           echo "status=success" >> ${GITHUB_OUTPUT}
-
-      # - name: Build and push to local registry
-      #   id: build
-      #   uses: docker/build-push-action@master
-      #   with:
-      #     context: .
-      #     file: ${{ github.workspace }}/${{ env.path_dockerfile }}
-      #     no-cache: false
-      #     platforms: ${{ env.arch_branch }}
-      #     load: false
-      #     push: true
-      #     tags: localhost:5000/${{ env.repo_dockerhub }}:${{ env.tag }}
-      #     build-args: |
-      #       base_image=${{ env.base_image }}
-      #       update_channel=${{ env.update_channel }}
 
       - name: Test Docker image & Check version consistency
         id: test
